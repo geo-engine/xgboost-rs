@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        build: [stable, beta, nightly]
+        include:
+          - build: stable
+            os: ubuntu-latest
+            rust: stable
+          - build: beta
+            os: ubuntu-latest
+            rust: beta
+          - build: nightly
+            os: ubuntu-latest
+            rust: nightly
+          # - build: macos
+          #   os: macos-latest
+          #   rust: stable
+          # - build: windows
+          #   os: windows-latest
+          #   rust: stable
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+        with:
+          submodules: recursive
+      - if: runner.os == 'Linux'
+        name:  Install dependencies (Linux)
+        shell: bash
+        run: |
+          sudo apt install cmake
+      - if: runner.os == 'macOS'
+        name:  Install dependencies (macOS)
+        shell: bash
+        run: |
+          brew install llvm
+          # export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++" >> $GITHUB_PATH
+          # export LDFLAGS="-L/usr/local/opt/llvm/lib" >> $GITHUB_PATH
+          # export CPPFLAGS="-I/usr/local/opt/llvm/include" >> $GITHUB_PATH
+          # export PATH="/usr/local/opt/llvm/bin:$PATH" >> /Users/runner/.bash_profile
+          export CMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -Xpreprocessor -fopenmp"
+        # run:   |
+        #        if [ "$RUNNER_OS" == "Linux" ]; then
+        #             sudo apt install cmake
+        #        elif [ "$RUNNER_OS" == "Windows" ]; then
+        #             choco install cmake
+        #        elif [ "$RUNNER_OS" == "macOS" ]; then
+        #             brew install llvm \
+        #             && export LDFLAGS='-L/usr/local/opt/llvm/lib' \
+        #             && export CPPFLAGS='-I/usr/local/opt/llvm/include' \
+        #             && LDFLAGS='-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++'
+        #        else
+        #             echo "$RUNNER_OS not supported"
+        #             exit 1
+        #        fi
+        # shell: bash
+
+      - name: Install Rustup
+        run:  rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }} && rustup component add rustfmt clippy
+        shell: bash
+
+      - name: Check with Rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: Check with Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test ${{ matrix.features }} --verbose
+      - run: cargo test --manifest-path xgboost-rs-sys/Cargo.toml ${{ matrix.features }} --verbose
+
+  build:
+    name: Build
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        build: [stable, beta, nightly]
+        include:
+          - build: stable
+            os: ubuntu-latest
+            rust: stable
+          - build: beta
+            os: ubuntu-latest
+            rust: beta
+          - build: nightly
+            os: ubuntu-latest
+            rust: nightly
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+        with:
+          submodules: recursive
+
+      - name:  Install dependencies
+        run:   |
+               if [ "$RUNNER_OS" == "Linux" ]; then
+                    sudo apt install cmake
+               elif [ "$RUNNER_OS" == "macOS" ]; then
+                    brew install llvm && ln -s /usr/local/opt/llvm/lib/libomp.dylib /usr/local/lib/libomp.dylib
+                    export LDFLAGS="-L/usr/local/opt/llvm/lib"
+               elif [ "$RUNNER_OS" == "Windows" ]; then
+                    choco install cmake
+               else
+                    echo "$RUNNER_OS not supported"
+                    exit 1
+               fi
+        shell: bash
+
+      - name: Install Rustup
+        run:  rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }} && rustup component add rustfmt clippy
+        shell: bash
+      - name: Build
+        run: cargo build --verbose
+      - run: cargo build --manifest-path xgboost-rs-sys/Cargo.toml --verbose
