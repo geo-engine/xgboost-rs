@@ -1,0 +1,24 @@
+[package]
+name = "xgboost-rs-sys"
+version = "0.1.3"
+links = "xgboost"
+build = "build.rs"
+license = "MIT"
+description = "Low level bindings to dmlc/xgboost for rust."
+authors = ["Marcus Weber <marcus.wallau@gmail.com>"]
+repository = "https://github.com/marweumr/xgboost-rs/xgboost-rs-sys"
+keywords = ["xgboost", "ml", "machine learning", "bindings", "boosting", "tree"]
+
+categories = ["api-bindings", "external-ffi-bindings"]
+edition = "2021"
+
+[lib]
+name = "xgboost_rs_sys"
+path = "lib.rs"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+bindgen = "0.60"
+cmake = "0.1"
