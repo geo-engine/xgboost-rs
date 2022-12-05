@@ -383,7 +383,7 @@ mod tests {
 
     fn read_train_matrix() -> XGBResult<DMatrix> {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
-        DMatrix::load(format!("{}/data.csv?format=csv", data_path))
+        DMatrix::load(format!("{data_path}/data.csv?format=csv"))
     }
 
     #[test]

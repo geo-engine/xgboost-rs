@@ -192,20 +192,20 @@ impl ToString for EvaluationMetric {
                 if (t - 0.5).abs() < std::f32::EPSILON {
                     "error".to_owned()
                 } else {
-                    format!("error@{}", t)
+                    format!("error@{t}")
                 }
             }
             EvaluationMetric::MultiClassErrorRate => "merror".to_owned(),
             EvaluationMetric::MultiClassLogLoss => "mlogloss".to_owned(),
             EvaluationMetric::Auc => "auc".to_owned(),
             EvaluationMetric::Ndcg => "ndcg".to_owned(),
-            EvaluationMetric::NdcgCut(n) => format!("ndcg@{}", n),
+            EvaluationMetric::NdcgCut(n) => format!("ndcg@{n}"),
             EvaluationMetric::NdcgNegative => "ndcg-".to_owned(),
-            EvaluationMetric::NdcgCutNegative(n) => format!("ndcg@{}-", n),
+            EvaluationMetric::NdcgCutNegative(n) => format!("ndcg@{n}-"),
             EvaluationMetric::Map => "map".to_owned(),
-            EvaluationMetric::MapCut(n) => format!("map@{}", n),
+            EvaluationMetric::MapCut(n) => format!("map@{n}"),
             EvaluationMetric::MapNegative => "map-".to_owned(),
-            EvaluationMetric::MapCutNegative(n) => format!("map@{}-", n),
+            EvaluationMetric::MapCutNegative(n) => format!("map@{n}-"),
             EvaluationMetric::PoissonLogLoss => "poisson-nloglik".to_owned(),
             EvaluationMetric::GammaLogLoss => "gamma-nloglik".to_owned(),
             EvaluationMetric::CoxLogLoss => "cox-nloglik".to_owned(),

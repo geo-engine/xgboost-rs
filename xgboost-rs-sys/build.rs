@@ -14,7 +14,7 @@ fn main() {
     // copy source code into OUT_DIR for compilation if it doesn't exist
     if !xgb_root.exists() {
         Command::new("cp")
-            .args(&["-r", "xgboost", xgb_root.to_str().unwrap()])
+            .args(["-r", "xgboost", xgb_root.to_str().unwrap()])
             .status()
             .unwrap_or_else(|e| {
                 panic!("Failed to copy ./xgboost to {}: {}", xgb_root.display(), e);

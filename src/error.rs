@@ -27,7 +27,7 @@ impl XGBError {
         match ret_val {
             0 => Ok(()),
             -1 => Err(XGBError::from_xgboost()),
-            _ => panic!("unexpected return value '{}', expected 0 or -1", ret_val),
+            _ => panic!("unexpected return value '{ret_val}', expected 0 or -1"),
         }
     }
 

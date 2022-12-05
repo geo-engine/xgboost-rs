@@ -742,7 +742,7 @@ impl Booster {
             };
 
             for (feature_num, (feature_name, feature_type)) in &fmap.0 {
-                writeln!(file, "{}\t{}\t{}", feature_num, feature_name, feature_type).unwrap();
+                writeln!(file, "{feature_num}\t{feature_name}\t{feature_type}").unwrap();
             }
 
             self.dump_model_fmap(with_statistics, Some(&file_path))
@@ -834,7 +834,7 @@ impl Booster {
                     assert_eq!(metric_parts.len(), 2);
                     let metric = metric_parts[0];
                     let score = metric_parts[1].parse::<f32>().unwrap_or_else(|_| {
-                        panic!("Unable to parse XGBoost metrics output: {}", eval)
+                        panic!("Unable to parse XGBoost metrics output: {eval}")
                     });
 
                     let metric_map = result
@@ -950,8 +950,7 @@ impl FromStr for FeatureType {
             "q" => Ok(FeatureType::Quantitative),
             "int" => Ok(FeatureType::Integer),
             _ => Err(format!(
-                "unrecognised feature type '{}', must be one of: 'i', 'q', 'int'",
-                s
+                "unrecognised feature type '{s}', must be one of: 'i', 'q', 'int'"
             )),
         }
     }
@@ -964,7 +963,7 @@ impl fmt::Display for FeatureType {
             FeatureType::Quantitative => "q",
             FeatureType::Integer => "int",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -982,7 +981,7 @@ mod tests {
 
     fn read_train_matrix() -> XGBResult<DMatrix> {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
-        DMatrix::load(format!("{}/data.csv?format=csv", data_path))
+        DMatrix::load(format!("{data_path}/data.csv?format=csv"))
     }
 
     fn load_test_booster() -> Booster {
@@ -1025,7 +1024,7 @@ mod tests {
     fn save_and_load_from_buffer() {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
         let dmat_train =
-            DMatrix::load(format!("{}/agaricus.txt.train?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.train?format=libsvm")).unwrap();
         let mut booster =
             Booster::new_with_cached_dmats(&BoosterParameters::default(), &[&dmat_train]).unwrap();
         let attr = booster
@@ -1087,9 +1086,9 @@ mod tests {
     fn predict() {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
         let dmat_train =
-            DMatrix::load(format!("{}/agaricus.txt.train?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.train?format=libsvm")).unwrap();
         let dmat_test =
-            DMatrix::load(format!("{}/agaricus.txt.test?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.test?format=libsvm")).unwrap();
 
         let tree_params = tree::TreeBoosterParametersBuilder::default()
             .max_depth(2)
@@ -1172,9 +1171,9 @@ mod tests {
     fn predict_leaf() {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
         let dmat_train =
-            DMatrix::load(format!("{}/agaricus.txt.train?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.train?format=libsvm")).unwrap();
         let dmat_test =
-            DMatrix::load(format!("{}/agaricus.txt.test?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.test?format=libsvm")).unwrap();
 
         let tree_params = tree::TreeBoosterParametersBuilder::default()
             .max_depth(2)
@@ -1211,9 +1210,9 @@ mod tests {
     fn predict_contributions() {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
         let dmat_train =
-            DMatrix::load(format!("{}/agaricus.txt.train?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.train?format=libsvm")).unwrap();
         let dmat_test =
-            DMatrix::load(format!("{}/agaricus.txt.test?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.test?format=libsvm")).unwrap();
 
         let tree_params = tree::TreeBoosterParametersBuilder::default()
             .max_depth(2)
@@ -1251,9 +1250,9 @@ mod tests {
     fn predict_interactions() {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
         let dmat_train =
-            DMatrix::load(format!("{}/agaricus.txt.train?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.train?format=libsvm")).unwrap();
         let dmat_test =
-            DMatrix::load(format!("{}/agaricus.txt.test?format=libsvm", data_path)).unwrap();
+            DMatrix::load(format!("{data_path}/agaricus.txt.test?format=libsvm")).unwrap();
 
         let tree_params = tree::TreeBoosterParametersBuilder::default()
             .max_depth(2)

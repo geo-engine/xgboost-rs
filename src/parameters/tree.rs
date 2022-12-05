@@ -73,7 +73,7 @@ impl<'a> From<&'a str> for TreeMethod {
             "hist" => TreeMethod::Hist,
             "gpu_exact" => TreeMethod::GpuExact,
             "gpu_hist" => TreeMethod::GpuHist,
-            _ => panic!("no known tree_method for {}", s),
+            _ => panic!("no known tree_method for {s}"),
         }
     }
 }
