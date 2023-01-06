@@ -1,10 +1,14 @@
 use libc::{c_float, c_uint};
 use log::info;
+use snafu::{prelude::*, ResultExt};
 use std::convert::TryInto;
 use std::os::unix::ffi::OsStrExt;
 use std::{ffi, path::Path, ptr, slice};
 
-use crate::{XGBError, XGBResult};
+use crate::{
+    CStringConversionSnafu, CreateFromFileSnafu, CreateNewInstanceSnafu, DMatrixError,
+    DMatrixResult, DimensionSnafu, FfiError, FfiSnafu, NumericConversionSnafu, XGBError, XGBResult,
+};
 
 static KEY_GROUP_PTR: &str = "group_ptr";
 static KEY_GROUP: &str = "group";
@@ -28,17 +32,17 @@ unsafe impl Sync for DMatrix {}
 
 impl DMatrix {
     /// Construct a new instance from a `DMatrixHandle` created by the `XGBoost` C API.
-    fn new(handle: xgboost_rs_sys::DMatrixHandle) -> XGBResult<Self> {
+    fn new(handle: xgboost_rs_sys::DMatrixHandle) -> DMatrixResult<Self> {
         // number of rows/cols are frequently read throughout applications, so more convenient to pull them out once
         // when the matrix is created, instead of having to check errors each time XGDMatrixNum* is called
         let mut out = 0;
-        xgb_call!(xgboost_rs_sys::XGDMatrixNumRow(handle, &mut out))?;
+        xgb_call!(xgboost_rs_sys::XGDMatrixNumRow(handle, &mut out)).context(DimensionSnafu)?;
         let num_rows = out as usize;
 
         let mut out = 0;
-        xgb_call!(xgboost_rs_sys::XGDMatrixNumCol(handle, &mut out))?;
+        xgb_call!(xgboost_rs_sys::XGDMatrixNumCol(handle, &mut out)).context(DimensionSnafu)?;
         let num_cols = out as usize;
-        info!("Loaded DMatrix with shape: {}x{}", num_rows, num_cols);
+
         Ok(DMatrix {
             handle,
             num_rows,
@@ -59,7 +63,7 @@ impl DMatrix {
         n_cols: usize,
         n_thread: i32,
         nan: f32,
-    ) -> XGBResult<Self> {
+    ) -> DMatrixResult<Self> {
         let mut handle = ptr::null_mut();
 
         // xg needs to know, where the first element of the data resides in memory
@@ -85,14 +89,16 @@ impl DMatrix {
                 "
         );
 
-        let array_config_cstr = ffi::CString::new(array_config).unwrap();
-        let json_config_cstr = ffi::CString::new(json_config).unwrap();
+        let array_config_cstr = ffi::CString::new(array_config).context(CStringConversionSnafu)?;
+        let json_config_cstr = ffi::CString::new(json_config).context(CStringConversionSnafu)?;
 
         xgb_call!(xgboost_rs_sys::XGDMatrixCreateFromDense(
             array_config_cstr.as_ptr(),
             json_config_cstr.as_ptr(),
             &mut handle
-        ))?;
+        ))
+        .context(CreateNewInstanceSnafu)?;
+
         Ok(DMatrix::new(handle).unwrap())
     }
 
@@ -102,7 +108,7 @@ impl DMatrix {
     ///
     /// Will panic, if the matrix creation fails with an error not coming from `XGBoost`.
 
-    pub fn from_dense(data: &[f32], num_rows: usize) -> XGBResult<Self> {
+    pub fn from_dense(data: &[f32], num_rows: usize) -> DMatrixResult<Self> {
         let mut handle = ptr::null_mut();
         xgb_call!(xgboost_rs_sys::XGDMatrixCreateFromMat(
             data.as_ptr(),
@@ -110,7 +116,9 @@ impl DMatrix {
             (data.len() / num_rows) as xgboost_rs_sys::bst_ulong,
             0.0, // TODO: can values be missing here?
             &mut handle
-        ))?;
+        ))
+        .context(CreateNewInstanceSnafu)?;
+
         Ok(DMatrix::new(handle).unwrap())
     }
 
@@ -131,7 +139,7 @@ impl DMatrix {
         indices: &[usize],
         data: &[f32],
         num_cols: Option<usize>,
-    ) -> XGBResult<Self> {
+    ) -> DMatrixResult<Self> {
         assert_eq!(indices.len(), data.len());
         let mut handle = ptr::null_mut();
         let indptr: Vec<u64> = indptr.iter().map(|x| *x as u64).collect();
@@ -141,11 +149,13 @@ impl DMatrix {
             indptr.as_ptr(),
             indices.as_ptr(),
             data.as_ptr(),
-            indptr.len().try_into().unwrap(),
-            data.len().try_into().unwrap(),
-            num_cols.try_into().unwrap(),
+            indptr.len().try_into().context(NumericConversionSnafu)?,
+            data.len().try_into().context(NumericConversionSnafu)?,
+            num_cols.try_into().context(NumericConversionSnafu)?,
             &mut handle
-        ))?;
+        ))
+        .context(CreateNewInstanceSnafu)?;
+
         Ok(DMatrix::new(handle).unwrap())
     }
 
@@ -210,7 +220,7 @@ impl DMatrix {
     /// # Panics
     ///
     /// Will panic, if the matrix creation fails with an error not coming from `XGBoost`.
-    pub fn load<P: AsRef<Path>>(path: P) -> XGBResult<Self> {
+    pub fn load<P: AsRef<Path>>(path: P) -> DMatrixResult<Self> {
         let path_as_string = path.as_ref().display().to_string();
         let path_as_bytes = Path::new(&path_as_string).as_os_str().as_bytes();
 
@@ -221,7 +231,8 @@ impl DMatrix {
             path_cstr.as_ptr(),
             i32::from(silent),
             &mut handle
-        ))?;
+        ))
+        .context(CreateFromFileSnafu { path: path_cstr })?;
         Ok(DMatrix::new(handle).unwrap())
     }
 
@@ -381,9 +392,9 @@ impl Drop for DMatrix {
 mod tests {
     use super::*;
 
-    fn read_train_matrix() -> XGBResult<DMatrix> {
+    fn read_train_matrix() -> DMatrixResult<DMatrix> {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
-        DMatrix::load(format!("{data_path}/data.csv?format=csv"))
+        DMatrix::load(format!("{data_path}/agaricus.txt.train"))
     }
 
     #[test]
@@ -393,12 +404,12 @@ mod tests {
 
     #[test]
     fn read_num_rows() {
-        assert_eq!(read_train_matrix().unwrap().num_rows(), 23946);
+        assert_eq!(read_train_matrix().unwrap().num_rows(), 6513);
     }
 
     #[test]
     fn read_num_cols() {
-        assert_eq!(read_train_matrix().unwrap().num_cols(), 6);
+        assert_eq!(read_train_matrix().unwrap().num_cols(), 127);
     }
 
     #[test]
@@ -419,7 +430,7 @@ mod tests {
     #[test]
     fn get_set_labels() {
         let mut dmat = read_train_matrix().unwrap();
-        assert_eq!(dmat.get_labels().unwrap().len(), 23946);
+        assert_eq!(dmat.get_labels().unwrap().len(), 6513);
         let labels = vec![0.0; dmat.get_labels().unwrap().len()];
         assert!(dmat.set_labels(&labels).is_ok());
         assert_eq!(dmat.get_labels().unwrap(), labels);

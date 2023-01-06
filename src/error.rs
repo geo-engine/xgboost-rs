@@ -1,14 +1,82 @@
 //! Functionality related to errors and error handling.
-
-use std::error::Error;
-use std::ffi::CStr;
+use snafu::{prelude::*, Backtrace, Error, ResultExt};
+use std::ffi::{CStr, CString, NulError};
 use std::fmt::{self, Display};
+use std::num::TryFromIntError;
+use std::str::Utf8Error;
+
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub(crate)))]
+#[non_exhaustive]
+pub enum FfiError {
+    #[snafu(display("Could not convert c_str to rust string."))]
+    CStringConversion {
+        source: NulError,
+    },
+    NumericConversion {
+        source: TryFromIntError,
+    },
+}
+
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub(crate)))]
+#[non_exhaustive]
+pub enum DMatrixError {
+    #[snafu(display("Could not create a new dmatrix instance."))]
+    Dimension {
+        source: XGBError,
+    },
+    #[snafu(display("Could not load a dmatrix from file {}. With error: {}", path.to_str().unwrap(), source.desc))]
+    CreateFromFile {
+        path: CString,
+        source: XGBError,
+    },
+    #[snafu(display(
+        "Could not load or create a dmatrix, due to an error from the ffi: {}",
+        source
+    ))]
+    FfiError {
+        source: FfiError,
+    },
+    CreateNewInstance {
+        source: XGBError,
+    },
+}
+
+impl From<FfiError> for DMatrixError {
+    fn from(src: FfiError) -> Self {
+        DMatrixError::FfiError {
+            source: match src {
+                FfiError::CStringConversion { source } => FfiError::CStringConversion { source },
+                FfiError::NumericConversion { source } => FfiError::NumericConversion { source },
+            },
+        }
+
+        // match src {
+        //     FfiError::CStringConversion { source } => DMatrixError::FfiError {
+        //         source: FfiError::CStringConversion { source },
+        //     },
+        //     FfiError::NumericConversion { source } => todo!(),
+        // }
+
+        // DMatrixError::FfiError {
+        //     source: FfiError::CStringConversion {
+        //         source: match src {
+        //             FfiError::CStringConversion { source } => source,
+        //         },
+        //     },
+        // }
+    }
+}
+
+pub type DMatrixResult<T> = std::result::Result<T, DMatrixError>;
 
 /// Convenience return type for most operations which can return an `XGBError`.
 pub type XGBResult<T> = std::result::Result<T, XGBError>;
 
+// TODO: rename to xgbliberror
 /// Wrap errors returned by the `XGBoost` library.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Snafu, Eq, PartialEq)]
 pub struct XGBError {
     desc: String,
 }
@@ -41,13 +109,13 @@ impl XGBError {
     }
 }
 
-impl Error for XGBError {}
-
-impl Display for XGBError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "XGBoost error: {}", &self.desc)
-    }
-}
+// impl Error for XGBError {}
+//
+// impl Display for XGBError {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, "XGBoost error: {}", &self.desc)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

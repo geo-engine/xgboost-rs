@@ -11,8 +11,8 @@ macro_rules! xgb_call {
     };
 }
 
-mod error;
-pub use error::{XGBError, XGBResult};
+pub mod error;
+pub use error::*;
 
 mod dmatrix;
 pub use dmatrix::DMatrix;

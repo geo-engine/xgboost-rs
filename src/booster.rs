@@ -976,12 +976,12 @@ mod tests {
 
     use crate::{
         parameters::{self, learning, tree, BoosterParameters},
-        Booster, DMatrix, XGBResult,
+        Booster, DMatrix, DMatrixResult, XGBResult,
     };
 
-    fn read_train_matrix() -> XGBResult<DMatrix> {
+    fn read_train_matrix() -> DMatrixResult<DMatrix> {
         let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
-        DMatrix::load(format!("{data_path}/data.csv?format=csv"))
+        DMatrix::load(format!("{data_path}/agaricus.txt.train"))
     }
 
     fn load_test_booster() -> Booster {
