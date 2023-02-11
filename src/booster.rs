@@ -73,8 +73,7 @@ impl Booster {
 
     pub fn new_with_json_config(
         dmats: &[&DMatrix],
-
-        config: HashMap<&str, &str>,
+        config: HashMap<String, String>,
     ) -> XGBResult<Self> {
         let mut handle = ptr::null_mut();
         // TODO: check this is safe if any dmats are freed
@@ -243,7 +242,7 @@ impl Booster {
     pub fn train(
         evaluation_sets: Option<&[(&DMatrix, &str)]>,
         dtrain: &DMatrix,
-        config: HashMap<&str, &str>,
+        config: HashMap<String, String>,
         bst: Option<Booster>,
     ) -> XGBResult<Self> {
         let cached_dmats = {
@@ -801,7 +800,7 @@ impl Booster {
     /// # Panics
     ///
     /// Will panic, if `XGBoost` cannot set the values.
-    fn set_param_from_json(&mut self, config: HashMap<&str, &str>) {
+    fn set_param_from_json(&mut self, config: HashMap<String, String>) {
         for (k, v) in config {
             let name = ffi::CString::new(k).unwrap();
             let value = ffi::CString::new(v).unwrap();
@@ -2342,13 +2341,13 @@ mod tests {
         // ------------------------------------------------------
         // start training
 
-        let mut initial_training_config: HashMap<&str, &str> = HashMap::new();
+        let mut initial_training_config: HashMap<String, String> = HashMap::new();
 
-        initial_training_config.insert("validate_parameters", "1");
-        initial_training_config.insert("process_type", "default");
-        initial_training_config.insert("tree_method", "hist");
-        initial_training_config.insert("eval_metric", "rmse");
-        initial_training_config.insert("max_depth", "3");
+        initial_training_config.insert("validate_parameters".into(), "1".into());
+        initial_training_config.insert("process_type".into(), "default".into());
+        initial_training_config.insert("tree_method".into(), "hist".into());
+        initial_training_config.insert("eval_metric".into(), "rmse".into());
+        initial_training_config.insert("max_depth".into(), "3".into());
 
         let evals = &[(&xg_matrix, "train")];
         let bst = Booster::train(
