@@ -49,6 +49,14 @@ impl Display for XGBError {
     }
 }
 
+impl From<std::ffi::NulError> for XGBError {
+    fn from(source: std::ffi::NulError) -> Self {
+        XGBError {
+            desc: source.to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

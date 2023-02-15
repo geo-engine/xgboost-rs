@@ -124,6 +124,44 @@ impl Booster {
         ))
     }
 
+    ///Save the model to a in memory buffer representation instead of file.
+    ///
+    /// # Arguments
+    /// ----------
+    /// * `raw_format` - Format of output buffer. Can be "json", "ubj" or "deprecated".  Right now
+    ///     the default is "deprecated" but it will be changed to "ubj" (univeral binary
+    ///     json) in the future.
+    ///
+    /// # Returns
+    /// -------
+    /// An in memory buffer representation of the model
+    ///
+    /// # Panics
+    /// -------
+    ///
+    /// Will panic, if the model saving fails with an error not coming from `XGBoost`.
+    pub fn save_to_buffer(&self, raw_format: String) -> XGBResult<String> {
+        let json_config = format!("{{ \"format\": \"{raw_format}\"}}");
+        let mut out_len: u64 = 0;
+        let mut out_buffer_string = ptr::null();
+        let json_config_cstr = ffi::CString::new(json_config)?;
+
+        xgb_call!(xgboost_rs_sys::XGBoosterSaveModelToBuffer(
+            self.handle,
+            json_config_cstr.as_ptr(),
+            &mut out_len,
+            &mut out_buffer_string
+        ))?;
+
+        let model: &str = unsafe {
+            let c_str = std::ffi::CStr::from_ptr(out_buffer_string);
+            let model_c_str = c_str.to_str().unwrap();
+            model_c_str
+        };
+
+        Ok(model.to_string())
+    }
+
     /// Load a `Booster` from a binary file at given path.
     ///
     /// # Panics
@@ -828,8 +866,7 @@ impl Booster {
         for part in eval.split('\t').skip(1) {
             for evname in evnames {
                 if part.starts_with(evname) {
-                    let metric_parts: Vec<&str> =
-                        part[evname.len() + 1..].split(':').into_iter().collect();
+                    let metric_parts: Vec<&str> = part[evname.len() + 1..].split(':').collect();
                     assert_eq!(metric_parts.len(), 2);
                     let metric = metric_parts[0];
                     let score = metric_parts[1].parse::<f32>().unwrap_or_else(|_| {
@@ -1049,6 +1086,49 @@ mod tests {
             .get_attribute("foo")
             .expect("Getting attribute failed");
         assert_eq!(attr, Some("bar".to_owned()));
+    }
+
+    #[test]
+    fn save_to_json_string() {
+        let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
+        let dmat_train =
+            DMatrix::load(format!("{data_path}/agaricus.txt.train?format=libsvm")).unwrap();
+        let dmat_test =
+            DMatrix::load(format!("{data_path}/agaricus.txt.test?format=libsvm")).unwrap();
+
+        let tree_params = tree::TreeBoosterParametersBuilder::default()
+            .max_depth(2)
+            .eta(1.0)
+            .build()
+            .unwrap();
+        let learning_params = learning::LearningTaskParametersBuilder::default()
+            .objective(learning::Objective::BinaryLogistic)
+            .build()
+            .unwrap();
+        let params = parameters::BoosterParametersBuilder::default()
+            .booster_type(parameters::BoosterType::Tree(tree_params))
+            .learning_params(learning_params)
+            .verbose(false)
+            .build()
+            .unwrap();
+        let mut booster =
+            Booster::new_with_cached_dmats(&params, &[&dmat_train, &dmat_test]).unwrap();
+
+        for i in 0..10 {
+            booster.update(&dmat_train, i).expect("update failed");
+        }
+
+        let json = booster
+            .save_to_buffer(String::from("json"))
+            .expect("saving booster failed");
+
+        let actual = &json[..330];
+
+        drop(booster);
+
+        let expected = r#"{"learner":{"attributes":{},"feature_names":[],"feature_types":[],"gradient_booster":{"model":{"gbtree_model_param":{"num_parallel_tree":"1","num_trees":"10","size_leaf_vector":"0"},"tree_info":[0,0,0,0,0,0,0,0,0,0],"trees":[{"base_weights":[-7.150529E-2,1.2955159E0,-1.8666193E0,1.7121772E0,-1.7004405E0,-1.9407086E0,1.8596492E0]"#;
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
