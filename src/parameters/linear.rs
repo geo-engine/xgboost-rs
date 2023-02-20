@@ -5,10 +5,11 @@ use std::default::Default;
 use derive_builder::Builder;
 
 /// Linear model algorithm.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum LinearUpdate {
     /// Parallel coordinate descent algorithm based on shotgun algorithm. Uses ‘hogwild’ parallelism and
     /// therefore produces a nondeterministic solution on each run.
+    #[default]
     Shotgun,
 
     /// Ordinary coordinate descent algorithm. Also multithreaded but still produces a deterministic solution.
@@ -21,12 +22,6 @@ impl ToString for LinearUpdate {
             LinearUpdate::Shotgun => "shotgun".to_owned(),
             LinearUpdate::CoordDescent => "coord_descent".to_owned(),
         }
-    }
-}
-
-impl Default for LinearUpdate {
-    fn default() -> Self {
-        LinearUpdate::Shotgun
     }
 }
 

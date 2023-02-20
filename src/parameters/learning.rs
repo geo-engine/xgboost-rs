@@ -9,12 +9,13 @@ use derive_builder::Builder;
 use super::Interval;
 
 /// Learning objective used when training a booster model.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub enum Objective {
     /// Linear regression.
     RegLinear,
 
     /// Squared error regression.
+    #[default]
     RegSquaredError,
 
     /// Logistic regression.
@@ -94,12 +95,6 @@ impl ToString for Objective {
             Objective::RegGamma => "reg:gamma".to_owned(),
             Objective::RegTweedie(_) => "reg:tweedie".to_owned(),
         }
-    }
-}
-
-impl Default for Objective {
-    fn default() -> Self {
-        Objective::RegSquaredError
     }
 }
 
