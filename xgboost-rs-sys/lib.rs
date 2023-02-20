@@ -13,7 +13,6 @@ mod tests {
 
     #[test]
     fn read_matrix() {
-        let out_dir = env!("OUT_DIR");
         let dmat_train_path = "xgboost/demo/data/agaricus.txt.train";
 
         let silent = 0;
