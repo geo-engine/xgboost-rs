@@ -142,9 +142,9 @@ impl Booster {
     /// Will panic, if the model saving fails with an error not coming from `XGBoost`.
     pub fn save_to_buffer(&self, raw_format: String) -> XGBResult<String> {
         let json_config = format!("{{ \"format\": \"{raw_format}\"}}");
-        let mut out_len: u64 = 0;
-        let mut out_buffer_string = ptr::null();
         let json_config_cstr = ffi::CString::new(json_config)?;
+        let mut out_len: u64 = 0;
+        let mut out_buffer_string: *const i8 = ptr::null();
 
         xgb_call!(xgboost_rs_sys::XGBoosterSaveModelToBuffer(
             self.handle,
@@ -153,11 +153,9 @@ impl Booster {
             &mut out_buffer_string
         ))?;
 
-        let model: &str = unsafe {
-            let c_str = std::ffi::CStr::from_ptr(out_buffer_string);
-            let model_c_str = c_str.to_str().unwrap();
-            model_c_str
-        };
+        let slice: &[u8] =
+            unsafe { std::slice::from_raw_parts(out_buffer_string as *const u8, out_len as usize) };
+        let model: &str = std::str::from_utf8(slice)?;
 
         Ok(model.to_string())
     }

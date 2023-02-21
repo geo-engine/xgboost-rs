@@ -57,6 +57,14 @@ impl From<std::ffi::NulError> for XGBError {
     }
 }
 
+impl From<std::str::Utf8Error> for XGBError {
+    fn from(source: std::str::Utf8Error) -> Self {
+        XGBError {
+            desc: source.to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
