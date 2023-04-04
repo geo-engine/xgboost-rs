@@ -12,6 +12,9 @@ keywords = ["xgboost", "machinelearning", "bindings", "boosting", "tree"]
 categories = ["api-bindings", "external-ffi-bindings"]
 edition = "2021"
 
+[features]
+gpu  = []
+
 [lib]
 name = "xgboost_rs_sys"
 path = "lib.rs"

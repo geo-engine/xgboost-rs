@@ -10,6 +10,7 @@ fn main() {
     let target = env::var("TARGET").unwrap();
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let xgb_root = Path::new(&out_path).join("xgboost");
+    let with_gpu_support = env::var_os("CARGO_FEATURE_GPU");
 
     // copy source code into OUT_DIR for compilation if it doesn't exist
     if !xgb_root.exists() {
@@ -22,10 +23,21 @@ fn main() {
     }
 
     // CMake
-    let dst = Config::new(&xgb_root)
-        .uses_cxx11()
-        .define("BUILD_STATIC_LIB", "ON")
-        .build();
+    let dst = if let Some(_) = with_gpu_support {
+        Config::new(&xgb_root)
+            .uses_cxx11()
+            .define("BUILD_STATIC_LIB", "ON")
+            .define("BUILD_WITH_CUDA_CUB", "ON")
+            .define("USE_CUDA", "ON")
+            .build()
+    } else {
+        Config::new(&xgb_root)
+            .uses_cxx11()
+            .define("BUILD_STATIC_LIB", "ON")
+            .define("BUILD_WITH_CUDA_CUB", "OFF")
+            .define("USE_CUDA", "OFF")
+            .build()
+    };
 
     // CONFIG BINDGEN
     let bindings = bindgen::Builder::default()
@@ -50,6 +62,11 @@ fn main() {
     println!("cargo:rustc-link-search={}", dst.join("lib").display());
     println!("cargo:rustc-link-lib=xgboost");
     println!("cargo:rustc-link-lib=dmlc");
+
+    if with_gpu_support.is_some() {
+        println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+        println!("cargo:rustc-link-lib=cudart");
+    }
 
     if target.contains("apple") {
         println!("cargo:rustc-link-lib=dylib=c++");
