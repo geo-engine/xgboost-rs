@@ -22,10 +22,14 @@ use crate::DMatrix;
 
 pub use self::booster::BoosterType;
 use super::booster::CustomObjective;
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
 
 /// Parameters for training boosters.
 /// Created using [`BoosterParametersBuilder`](struct.BoosterParametersBuilder.html).
+
 #[derive(Builder, Clone, Default)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[builder(default)]
 pub struct BoosterParameters {
     /// Type of booster (tree, linear or DART) along with its parameters.

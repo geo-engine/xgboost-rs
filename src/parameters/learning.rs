@@ -6,10 +6,14 @@ use std::default::Default;
 
 use derive_builder::Builder;
 
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
+
 use super::Interval;
 
 /// Learning objective used when training a booster model.
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum Objective {
     /// Linear regression.
     RegLinear,
@@ -100,6 +104,7 @@ impl ToString for Objective {
 
 /// Type of evaluation metrics to use during learning.
 #[derive(Clone)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum Metrics {
     /// Automatically selects metrics based on learning objective.
     Auto,
@@ -110,6 +115,7 @@ pub enum Metrics {
 
 /// Type of evaluation metric used on validation data.
 #[derive(Clone)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum EvaluationMetric {
     /// Root Mean Square Error.
     Rmse,
@@ -215,6 +221,7 @@ impl ToString for EvaluationMetric {
 /// See [`LearningTaskParametersBuilder`](struct.LearningTaskParametersBuilder.html), for details
 /// on parameters.
 #[derive(Builder, Clone)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[builder(build_fn(validate = "Self::validate"))]
 #[builder(default)]
 pub struct LearningTaskParameters {

@@ -4,8 +4,12 @@ use std::default::Default;
 
 use derive_builder::Builder;
 
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
+
 /// Linear model algorithm.
 #[derive(Clone, Default)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum LinearUpdate {
     /// Parallel coordinate descent algorithm based on shotgun algorithm. Uses ‘hogwild’ parallelism and
     /// therefore produces a nondeterministic solution on each run.
@@ -27,6 +31,7 @@ impl ToString for LinearUpdate {
 
 /// `BoosterParameters` for Linear Booster.
 #[derive(Builder, Clone)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[builder(default)]
 pub struct LinearBoosterParameters {
     /// L2 regularization term on weights, increase this value will make model more conservative.
