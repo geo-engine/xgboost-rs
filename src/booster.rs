@@ -275,6 +275,85 @@ impl Booster {
         Ok(bst)
     }
 
+    pub fn train_with_booster_params(
+        evaluation_sets: Option<&[(&DMatrix, &str)]>,
+        dtrain: &DMatrix,
+        config: BoosterParameters,
+        bst: Option<Booster>,
+    ) -> XGBResult<Self> {
+        let cached_dmats = {
+            let mut dmats = vec![dtrain];
+            if let Some(eval_sets) = evaluation_sets {
+                for (dmat, _) in eval_sets {
+                    dmats.push(*dmat);
+                }
+            }
+            dmats
+        };
+
+        let mut bst: Booster = {
+            if let Some(booster) = bst {
+                let mut length: u64 = 0;
+                let mut buffer_string = ptr::null();
+
+                xgb_call!(xgboost_rs_sys::XGBoosterSerializeToBuffer(
+                    booster.handle,
+                    &mut length,
+                    &mut buffer_string
+                ))
+                .expect("couldn't serialize to buffer!");
+
+                let mut bst_handle = ptr::null_mut();
+
+                let cached_dmat_handles: Vec<xgboost_rs_sys::DMatrixHandle> =
+                    cached_dmats.iter().map(|x| x.handle).collect();
+
+                xgb_call!(xgboost_rs_sys::XGBoosterCreate(
+                    cached_dmat_handles.as_ptr(),
+                    cached_dmats.len() as u64,
+                    &mut bst_handle
+                ))?;
+
+                let mut bst_unserialize = Booster { handle: bst_handle };
+
+                xgb_call!(xgboost_rs_sys::XGBoosterUnserializeFromBuffer(
+                    bst_unserialize.handle,
+                    buffer_string as *mut ffi::c_void,
+                    length,
+                ))
+                .expect("couldn't unserialize from buffer!");
+
+                bst_unserialize
+                    .set_params(&config)
+                    .expect("Could not set config parameters.");
+                bst_unserialize
+            } else {
+                Booster::new_with_cached_dmats(&config, &cached_dmats)?
+            }
+        };
+
+        for i in 0..16 {
+            bst.update(dtrain, i)?;
+
+            if let Some(eval_sets) = evaluation_sets {
+                let dmat_eval_results = bst.eval_set(eval_sets, i)?;
+
+                // convert to map of eval_name -> (dmat_name -> score)
+                let mut eval_dmat_results = BTreeMap::new();
+                for (dmat_name, eval_results) in &dmat_eval_results {
+                    for (eval_name, result) in eval_results {
+                        let dmat_results = eval_dmat_results
+                            .entry(eval_name)
+                            .or_insert_with(BTreeMap::new);
+                        dmat_results.insert(dmat_name, result);
+                    }
+                }
+            }
+        }
+
+        Ok(bst)
+    }
+
     pub fn train(
         evaluation_sets: Option<&[(&DMatrix, &str)]>,
         dtrain: &DMatrix,

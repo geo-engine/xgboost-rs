@@ -5,6 +5,9 @@ use std::default::Default;
 
 use derive_builder::Builder;
 
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
+
 use super::Interval;
 
 /// The tree construction algorithm used in `XGBoost` (see description in the
@@ -12,6 +15,7 @@ use super::Interval;
 ///
 /// Distributed and external memory version only support approximate algorithm.
 #[derive(Clone, Default)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum TreeMethod {
     /// Use heuristic to choose faster one.
     ///
@@ -76,6 +80,7 @@ impl<'a> From<&'a str> for TreeMethod {
 /// Provides a modular way to construct and to modify the trees. This is an advanced parameter that is usually set
 /// automatically, depending on some other parameters. However, it could be also set explicitly by a user.
 #[derive(Clone)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum TreeUpdater {
     /// Non-distributed column-based construction of trees.
     GrowColMaker,
@@ -120,6 +125,7 @@ impl ToString for TreeUpdater {
 
 /// A type of boosting process to run.
 #[derive(Clone, Default)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum ProcessType {
     /// The normal boosting process which creates new trees.
     #[default]
@@ -145,6 +151,7 @@ impl ToString for ProcessType {
 
 /// Controls the way new nodes are added to the tree.
 #[derive(Clone, Default)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum GrowPolicy {
     /// Split at nodes closest to the root.
     #[default]
@@ -165,6 +172,7 @@ impl ToString for GrowPolicy {
 
 /// The type of predictor algorithm to use. Provides the same results but allows the use of GPU or CPU.
 #[derive(Clone, Default)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum Predictor {
     /// Multicore CPU prediction algorithm.
     #[default]
@@ -186,6 +194,7 @@ impl ToString for Predictor {
 /// `BoosterParameters` for Tree Booster. Create using
 /// [`TreeBoosterParametersBuilder`](struct.TreeBoosterParametersBuilder.html).
 #[derive(Builder, Clone)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[builder(build_fn(validate = "Self::validate"))]
 #[builder(default)]
 pub struct TreeBoosterParameters {

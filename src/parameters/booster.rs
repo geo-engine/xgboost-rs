@@ -1,9 +1,13 @@
 use std::default::Default;
 
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
+
 use super::{linear, tree};
 
 /// Type of booster to use when training a [Booster](../struct.Booster.html) model.
 #[derive(Clone)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub enum BoosterType {
     /// Use a tree booster with given parameters when training.
     ///
